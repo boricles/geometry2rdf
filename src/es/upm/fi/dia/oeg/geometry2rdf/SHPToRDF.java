@@ -21,7 +21,11 @@ import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+
+import es.upm.fi.dia.oeg.geometry2rdf.db.DBConnector;
+
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -30,6 +34,8 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Properties;
+
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFinder;
 import org.geotools.data.FeatureSource;
@@ -46,7 +52,7 @@ import org.opengis.referencing.operation.TransformException;
 
 /**
  *
- * @author magarcia
+ * @author boricles
  */
 public class SHPToRDF {
 
@@ -59,6 +65,13 @@ public class SHPToRDF {
     String nsdc = "http://purl.org/dc/terms/";
     String nsxsd = "http://www.w3.org/2001/XMLSchema#";
 
+    String pointType;
+    String linestringType;
+    String polygonType;
+    String formBy;
+    
+    String defaultLang="es";
+    
     public SHPToRDF(String modelDirectory) throws ClassNotFoundException {
 
         File f = new File(modelDirectory);
@@ -90,16 +103,80 @@ public class SHPToRDF {
     }
 
     public static void main(String[] args) throws Exception {
+    	if (args.length == 1){ 
+	    	Properties properties = new Properties();
 
+	    	properties.load(new FileInputStream(args[0]));
+
+	    	String inputFile = properties.getProperty("inputFile");
+	    	String tempDir = properties.getProperty("tempDir");
+			String outputFile = properties.getProperty("outputFile");
+
+			SHPToRDF gr1 = new SHPToRDF(tempDir);
+			
+			String resourceName = properties.getProperty("resourceName");
+
+			// Namespace parameters
+			String namespacePrefix = properties.getProperty("nsPrefix");
+			if (emptyString(namespacePrefix))
+				namespacePrefix = "georesource";
+			String namespace = properties.getProperty("nsURI");
+			if (emptyString(namespace))
+				namespace = "http://geo.linkeddata.es/resource/";
+			String ontologyNSPrefix = properties.getProperty("ontologyNSPrefix");
+			if (emptyString(ontologyNSPrefix))
+				ontologyNSPrefix = "geontology";
+			String ontologyNamespace = properties.getProperty("ontologyNS");
+			if (emptyString(ontologyNamespace))
+				ontologyNamespace = "http://geo.linkeddata.es/ontology/";
+
+			gr1.model.setNsPrefix(ontologyNSPrefix, ontologyNamespace);
+			gr1.model.setNsPrefix(namespacePrefix, namespace);
+			gr1.nsgeontology = ontologyNamespace;
+			gr1.nsgeoresource = namespace;
+			
+			
+			// Types parameters
+			gr1.pointType = properties.getProperty("pointType");
+			if (emptyString(gr1.pointType))
+				gr1.pointType="http://www.w3.org/2003/01/geo/wgs84_pos#Point";
+			gr1.linestringType = properties.getProperty("linestringType");
+			if (emptyString(gr1.linestringType))
+				gr1.pointType="http://geo.linkeddata.es/ontology/Curva";
+			gr1.polygonType = properties.getProperty("polygonType");
+			if (emptyString(gr1.polygonType))
+				gr1.pointType="http://geo.linkeddata.es/ontology/Pol%C3%ADgono";
+			gr1.formBy = properties.getProperty("formBy");
+			if (emptyString(gr1.formBy))
+				gr1.formBy = "formadoPor";
+			
+			// Other parameters
+			gr1.defaultLang = properties.getProperty("defaultLang");
+			if (emptyString(gr1.defaultLang))
+				gr1.defaultLang="es";
+			
+			String featureString = properties.getProperty("featureString");
+			String attribute = properties.getProperty("attribute");
+			String ignore = properties.getProperty("ignore");
+			String type = properties.getProperty("type");
+			
+			gr1.SHPtoRDF(null, null, inputFile, featureString, outputFile, attribute, ignore,type);
+	        
+    	} else {
+    		System.out.println("Incorrect arguments number. Properties file required.");
+    	}
+    	
+    	/*
          //WatrcrsA
-        String modelDirectory = "shpmodel";
+        String modelDirectory = "shp";
         SHPToRDF gr1 = new SHPToRDF(modelDirectory);
-        String fileString = "shp/ESP_adm4.shp";
-        String featureString = "WatrcrsL";
-        String outputFile = "shp.rdf";
-        String attribute = "NAMN1";
+        String fileString = "Sample-PAI-Naturel/PAI_ESPACE_NATUREL.SHP";
+        String featureString = "PAI_ESPACE_NATUREL";
+        String outputFile = "ghis.rdf";
+        String attribute = "ID";
         String ignore = "UNK";
-        /*String modelDirectory = "D://Proyectos/GeoLinkedData/librerias/shp/TDB";
+        String type = "anormalidad";
+        *String modelDirectory = "D://Proyectos/GeoLinkedData/librerias/shp/TDB";
         SHPToRDF gr1 = new SHPToRDF(modelDirectory);
         String fileString = "D://Proyectos/GeoLinkedData/librerias/shp/ESP_Adm0.shp";
         String featureString = "ESP_Adm0";
@@ -112,13 +189,13 @@ public class SHPToRDF {
         String featureString = "ESP_Adm0";
         String outputFile = "D://Proyectos/GeoLinkedData/librerias/shp/Test_TDB_ESP_Adm0.rdf";
         String attribute = "NAME_SPANI";
-        String ignore = "N_P";*/
-        gr1.SHPtoRDF(null, null, fileString, featureString, outputFile, attribute, ignore);
+        String ignore = "N_P";*
+        gr1.SHPtoRDF(null, null, fileString, featureString, outputFile, attribute, ignore,type);
         //gr1.SHPtoRDF(null, null);
-
+		*/
     }
 
-    private void SHPtoRDF(String source, String target, String fileString, String featureString, String outputFile, String attribute, String ignore) throws MalformedURLException, IOException, NoSuchAuthorityCodeException, FactoryException, TransformException{
+    private void SHPtoRDF(String source, String target, String fileString, String featureString, String outputFile, String attribute, String ignore, String type) throws MalformedURLException, IOException, NoSuchAuthorityCodeException, FactoryException, TransformException{
 
         File file = new File(fileString);
         Map map = new HashMap();
@@ -134,12 +211,17 @@ public class SHPToRDF {
             SimpleFeatureImpl feature = (SimpleFeatureImpl) iterator.next();
             Geometry o = (Geometry) feature.getDefaultGeometry();
 
-            String namn1 = feature.getAttribute(attribute).toString();
+            String namn1 = "featureWithoutName";
+            
+            if (feature.getAttribute(attribute)!=null)
+            	namn1 = feature.getAttribute(attribute).toString();
+            
             System.out.println("###################El valor de FEATURENAME2 is -->"+ namn1);
 
             // Si el elemento tiene de nombre N_P, no sabemos como actuar con el
-            if (!namn1.equals(ignore) && (namn1.startsWith("Río") || namn1.startsWith("Riu") || namn1.startsWith("Rio"))){
-                String tipo = "Río";
+            //if (!namn1.equals(ignore) && (namn1.startsWith("Río") || namn1.startsWith("Riu") || namn1.startsWith("Rio"))){
+            if (!namn1.equals(ignore)){
+                String tipo = type;
                 //String resource = "España";
                 String resource = namn1;
                 String defaultLang = "es";
@@ -162,7 +244,9 @@ public class SHPToRDF {
                 defaultLang=detectLang(resource);
                 insertarLabelResource(nsgeoresource + aux, resource, defaultLang);
                 System.out.println("GeometryType-->"+o.getGeometryType());
-                if (o.getGeometryType().equals("LineString"))
+                if (o.getGeometryType().equals("Point")) 
+                	insertPoint((Point) o,aux);
+                else if (o.getGeometryType().equals("LineString"))
                     insertarLineString(aux, hash, o);
                 else if (o.getGeometryType().equals("Polygon"))
                     insertarPolygon(aux, hash, o);
@@ -576,4 +660,20 @@ public class SHPToRDF {
         for (Coordinate c : ls.getCoordinates()) {//Si queremos tratar la Z
         }
     }
+    
+    private void insertPoint(Point p, String resource){
+		insertarTripletaResource(nsgeoresource + resource, nsgeo + "geometry", nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX());
+        //insertarTripletaResource(dtr.nsgeoresource + resource, dtr.nsgeontology + dtr.formBy, dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX());
+        insertarResourceTypeResource(nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(), nsgeo + "Point");
+        insertarTripletaLiteral(nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(), nsgeo + "lat", String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+        insertarTripletaLiteral(nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(), nsgeo + "long", String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+    }
+
+    private static boolean emptyString(String text){
+    	if (text == null && text == "")
+    		return true;
+    	else
+    		return false;
+    }
+    
 }
