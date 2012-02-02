@@ -2,7 +2,9 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package es.upm.fi.dia.oeg.geometry2rdf;
+package es.upm.fi.dia.oeg.geometry2rdf.shape;
+
+import es.upm.fi.dia.oeg.geometry2rdf.utils.UtilsLib;
 
 import com.hp.hpl.jena.datatypes.xsd.XSDDatatype;
 import com.hp.hpl.jena.db.IDBConnection;
@@ -21,8 +23,7 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
-import es.upm.fi.dia.oeg.geometry2rdf.db.DBConnector;
-
+import es.upm.fi.dia.oeg.geometry2rdf.HashGeometry;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -115,19 +116,19 @@ public class SHPToRDF {
 
       // Namespace parameters
       String namespacePrefix = properties.getProperty("nsPrefix");
-      if (emptyString(namespacePrefix)) {
+      if (UtilsLib.isNullOrEmpty(namespacePrefix)) {
         namespacePrefix = "georesource";
       }
       String namespace = properties.getProperty("nsURI");
-      if (emptyString(namespace)) {
+      if (UtilsLib.isNullOrEmpty(namespace)) {
         namespace = "http://geo.linkeddata.es/resource/";
       }
       String ontologyNSPrefix = properties.getProperty("ontologyNSPrefix");
-      if (emptyString(ontologyNSPrefix)) {
+      if (UtilsLib.isNullOrEmpty(ontologyNSPrefix)) {
         ontologyNSPrefix = "geontology";
       }
       String ontologyNamespace = properties.getProperty("ontologyNS");
-      if (emptyString(ontologyNamespace)) {
+      if (UtilsLib.isNullOrEmpty(ontologyNamespace)) {
         ontologyNamespace = "http://geo.linkeddata.es/ontology/";
       }
 
@@ -139,25 +140,25 @@ public class SHPToRDF {
 
       // Types parameters
       gr1.pointType = properties.getProperty("pointType");
-      if (emptyString(gr1.pointType)) {
+      if (UtilsLib.isNullOrEmpty(gr1.pointType)) {
         gr1.pointType = "http://www.w3.org/2003/01/geo/wgs84_pos#Point";
       }
       gr1.linestringType = properties.getProperty("linestringType");
-      if (emptyString(gr1.linestringType)) {
+      if (UtilsLib.isNullOrEmpty(gr1.linestringType)) {
         gr1.pointType = "http://geo.linkeddata.es/ontology/Curva";
       }
       gr1.polygonType = properties.getProperty("polygonType");
-      if (emptyString(gr1.polygonType)) {
+      if (UtilsLib.isNullOrEmpty(gr1.polygonType)) {
         gr1.pointType = "http://geo.linkeddata.es/ontology/Pol%C3%ADgono";
       }
       gr1.formBy = properties.getProperty("formBy");
-      if (emptyString(gr1.formBy)) {
+      if (UtilsLib.isNullOrEmpty(gr1.formBy)) {
         gr1.formBy = "formadoPor";
       }
 
       // Other parameters
       gr1.defaultLang = properties.getProperty("defaultLang");
-      if (emptyString(gr1.defaultLang)) {
+      if (UtilsLib.isNullOrEmpty(gr1.defaultLang)) {
         gr1.defaultLang = "es";
       }
 
@@ -742,11 +743,4 @@ public class SHPToRDF {
             nsgeo + "long", String.valueOf(p.getX()), XSDDatatype.XSDdouble);
   }
 
-private static boolean emptyString(String text) {
-    if (text == null && text.equals("")) {
-      return true;
-    } else {
-      return false;
-    }
-  }
 }

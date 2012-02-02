@@ -17,7 +17,9 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  */
-package es.upm.fi.dia.oeg.geometry2rdf;
+package es.upm.fi.dia.oeg.geometry2rdf.gml;
+
+import es.upm.fi.dia.oeg.geometry2rdf.Constants;
 
 import com.hp.hpl.jena.datatypes.xsd.XSDDatatype;
 import com.hp.hpl.jena.db.IDBConnection;
@@ -36,7 +38,15 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
-import es.upm.fi.dia.oeg.geometry2rdf.db.DBConnector;
+import es.upm.fi.dia.oeg.geometry2rdf.Constants;
+import es.upm.fi.dia.oeg.geometry2rdf.HashGeometry;
+import es.upm.fi.dia.oeg.geometry2rdf.db.DbConnector;
+import es.upm.fi.dia.oeg.geometry2rdf.db.DbConstants;
+import es.upm.fi.dia.oeg.geometry2rdf.db.MsAccessDbConnector;
+import es.upm.fi.dia.oeg.geometry2rdf.db.MySqlDbConnector;
+import es.upm.fi.dia.oeg.geometry2rdf.db.OracleDbConnector;
+import es.upm.fi.dia.oeg.geometry2rdf.db.PostgresqlDbConnector;
+import es.upm.fi.dia.oeg.geometry2rdf.utils.UtilsLib;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -62,7 +72,7 @@ import org.opengis.referencing.operation.MathTransform;
  * @author magarcia
  *
  */
-public class GMLToRDF implements Constants {
+public class GMLToRDF {
 
   Model model;
   IDBConnection conn;
@@ -77,7 +87,8 @@ public class GMLToRDF implements Constants {
   String polygonType;
   String formBy;
   static GMLToRDF dtr;
-  String defaultLang = "es";
+  private String defaultLang = "es";
+
 
   public GMLToRDF(String dir) throws ClassNotFoundException {
 
@@ -111,8 +122,8 @@ public class GMLToRDF implements Constants {
     f.mkdir();
 
     model = TDBFactory.createModel(dir);
-    model.setNsPrefix("geo", nsgeo);
-    model.setNsPrefix("xsd", nsxsd);
+    model.setNsPrefix("geo", Constants.NSGEO);
+    model.setNsPrefix("xsd", Constants.NSXSD);
   }
 
   public static void main(String[] args) throws Exception {
@@ -131,9 +142,29 @@ public class GMLToRDF implements Constants {
       String dbUserName = properties.getProperty("dbUserName");
       String dbPassword = properties.getProperty("dbPassword");
       String dbHost = properties.getProperty("dbHost");
-      String dbPort = properties.getProperty("dbPort");
+      int dbPort = Integer.getInteger(properties.getProperty("dbPort"));
 
-      DBConnector db = new DBConnector(dbType, dbName, dbUserName, dbPassword, dbHost, dbPort);
+      DbConnector databaseConnector = null;
+
+      switch(dbType) {
+        case DbConstants.MSACCESS:
+          databaseConnector = new MsAccessDbConnector(
+                  dbHost, dbPort, dbName, dbUserName, dbPassword);
+          break;
+        case DbConstants.MYSQL:
+          databaseConnector = new MySqlDbConnector(
+                  dbHost, dbPort, dbName, dbUserName, dbPassword);
+          break;
+        case DbConstants.ORACLE:
+          databaseConnector = new OracleDbConnector(
+                  dbHost, dbPort, dbName, dbUserName, dbPassword);
+          break;
+        case DbConstants.POSTGRESQL:
+          databaseConnector = new PostgresqlDbConnector(
+                  dbHost, dbPort, dbName, dbUserName, dbPassword);
+          break;
+      }
+
 
       String resourceName = properties.getProperty("resourceName");
 
@@ -144,19 +175,19 @@ public class GMLToRDF implements Constants {
 
       // Namespace parameters
       String namespacePrefix = properties.getProperty("nsPrefix");
-      if (emptyString(namespacePrefix)) {
+      if (UtilsLib.isNullOrEmpty(namespacePrefix)) {
         namespacePrefix = "georesource";
       }
       String namespace = properties.getProperty("nsURI");
-      if (emptyString(namespace)) {
+      if (UtilsLib.isNullOrEmpty(namespace)) {
         namespace = "http://geo.linkeddata.es/resource/";
       }
       String ontologyNSPrefix = properties.getProperty("ontologyNSPrefix");
-      if (emptyString(ontologyNSPrefix)) {
+      if (UtilsLib.isNullOrEmpty(ontologyNSPrefix)) {
         ontologyNSPrefix = "geontology";
       }
       String ontologyNamespace = properties.getProperty("ontologyNS");
-      if (emptyString(ontologyNamespace)) {
+      if (UtilsLib.isNullOrEmpty(ontologyNamespace)) {
         ontologyNamespace = "http://geo.linkeddata.es/ontology/";
       }
       dtr.model.setNsPrefix(ontologyNSPrefix, ontologyNamespace);
@@ -172,38 +203,37 @@ public class GMLToRDF implements Constants {
 
       // Types parameters
       dtr.pointType = properties.getProperty("pointType");
-      if (emptyString(dtr.pointType)) {
+      if (UtilsLib.isNullOrEmpty(dtr.pointType)) {
         dtr.pointType = "http://www.w3.org/2003/01/geo/wgs84_pos#Point";
       }
       dtr.linestringType = properties.getProperty("linestringType");
-      if (emptyString(dtr.linestringType)) {
+      if (UtilsLib.isNullOrEmpty(dtr.linestringType)) {
         dtr.pointType = "http://geo.linkeddata.es/ontology/Curva";
       }
       dtr.polygonType = properties.getProperty("polygonType");
-      if (emptyString(dtr.polygonType)) {
+      if (UtilsLib.isNullOrEmpty(dtr.polygonType)) {
         dtr.pointType = "http://geo.linkeddata.es/ontology/Pol%C3%ADgono";
       }
       dtr.formBy = properties.getProperty("formBy");
-      if (emptyString(dtr.formBy)) {
+      if (UtilsLib.isNullOrEmpty(dtr.formBy)) {
         dtr.formBy = "formadoPor";
       }
 
       // Other parameters
       dtr.defaultLang = properties.getProperty("defaultLang");
-      if (emptyString(dtr.defaultLang)) {
+      if (UtilsLib.isNullOrEmpty(dtr.defaultLang)) {
         dtr.defaultLang = "es";
       }
-      dtr.executeParser(db, tableName, resourceName, condition, outputFile,
+      dtr.executeParser(databaseConnector, tableName, resourceName, condition, outputFile,
               labelColumnName, geometryColumnName);
     } else {
       System.out.println("Incorrect arguments number. Properties file required.");
     }
   }
 
-  public void executeParser(DBConnector dbConn, String tableName, String resource,
+  private void executeParser(DbConnector dbConn, String tableName, String resource,
                             String condition, String outputFile, String labelColumnName,
                             String geometryColumnName) throws Exception {
-
     int totalRows;
     int from = 1;
     int until;
@@ -239,7 +269,7 @@ public class GMLToRDF implements Constants {
 
       while (rs.next()) {
         String gml = rs.getString("GmlGeometry");
-        if (!emptyString(dtr.gmlSourceRS) && !emptyString(dtr.gmlTargetRS)) {
+        if (!UtilsLib.isNullOrEmpty(dtr.gmlSourceRS) && !UtilsLib.isNullOrEmpty(dtr.gmlTargetRS)) {
           gml = rs.getString("GmlGeometry").replace(dtr.gmlSourceRS, dtr.gmlTargetRS);
         }
         dtr.parseGML2RDF(resource, rs.getString("e"), gml, dtr.sourceRS, dtr.targetRS);
@@ -262,14 +292,15 @@ public class GMLToRDF implements Constants {
     System.out.print("Process finished");
   }
 
-  public void parseGML2RDF(String tipo, String resource, String s, String source, String target) {
+  private void parseGML2RDF(String tipo, String resource,
+                            String s, String source, String target) {
     try {
-      InputStream is = convertStringToStream(s);
+      InputStream is = UtilsLib.convertStringToInputStream(s);
       org.geotools.xml.Configuration configuration = new org.geotools.gml2.GMLConfiguration();
       org.geotools.xml.Parser parser = new org.geotools.xml.Parser(configuration);
       Geometry o = (Geometry) parser.parse(is);
 
-      if (!emptyString(source) && !emptyString(target)) {
+      if (!UtilsLib.isNullOrEmpty(source) && !UtilsLib.isNullOrEmpty(target)) {
         //Quiere decir que hay que transformar
         CoordinateReferenceSystem sourceCRS = CRS.decode(source);
         CoordinateReferenceSystem targetCRS = CRS.decode(target);
@@ -317,34 +348,6 @@ public class GMLToRDF implements Constants {
 
   }
 
-  public String convertStreamToString(InputStream is) throws IOException {
-    if (is != null) {
-      StringBuilder sb = new StringBuilder();
-      String line;
-      try {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is, "UTF-8"));
-        while ((line = reader.readLine()) != null) {
-          sb.append(line).append("\n");
-        }
-      } finally {
-        is.close();
-      }
-      return sb.toString();
-    } else {
-      return "";
-    }
-  }
-
-  private InputStream convertStringToStream(String s) {
-    try {
-      InputStream is = new ByteArrayInputStream(s.getBytes("UTF-8"));
-      return is;
-    } catch (UnsupportedEncodingException e) {
-      e.printStackTrace();
-    }
-    return null;
-  }
-
   private void insertarTripletaLiteral(String s, String p, String o, XSDDatatype x) {
     //Permite ingresar una tripleta en el rdf
     if (x != null) {
@@ -389,7 +392,7 @@ public class GMLToRDF implements Constants {
                                    + URLEncoder.encode("Pol�gono", "utf-8").replace("+", "%20"));
     }
 
-    insertarTripletaResource(dtr.nsgeoresource + resource, nsgeo + "geometry",
+    insertarTripletaResource(dtr.nsgeoresource + resource, Constants.NSGEO + "geometry",
                              dtr.nsgeoresource + hash);
     insertarTripletaLiteral(dtr.nsgeoresource + hash, dtr.nsgeontology + "gml",
                             geo.toText(), null);
@@ -402,27 +405,32 @@ public class GMLToRDF implements Constants {
   }
 
   private void insertPoint(Point p, String resource) {
-    insertarTripletaResource(dtr.nsgeoresource + resource, nsgeo + "geometry",
+    insertarTripletaResource(dtr.nsgeoresource + resource, Constants.NSGEO + "geometry",
                              dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX());
     //insertarTripletaResource(dtr.nsgeoresource + resource, dtr.nsgeontology + dtr.formBy, dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX());
     insertarResourceTypeResource(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
-                                 nsgeo + "Point");
+                                 Constants.NSGEO + "Point");
     insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
-                            nsgeo + "lat", String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+                            Constants.NSGEO + "lat", String.valueOf(p.getY()), XSDDatatype.XSDdouble);
     insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
-                            nsgeo + "long", String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+                            Constants.NSGEO + "long",
+                            String.valueOf(p.getX()), XSDDatatype.XSDdouble);
   }
 
   private void insertPolygon(Polygon po, String hash) {
     int i = 0;
     for (Coordinate c : po.getCoordinates()) {//Si queremos tratar la Z
-      insertarTripletaResource(dtr.nsgeoresource + hash, dtr.nsgeontology + dtr.formBy, dtr.nsgeoresource + "wgs84/" + c.y + "_" + c.x);
+      insertarTripletaResource(dtr.nsgeoresource + hash,
+                               dtr.nsgeontology + dtr.formBy,
+                               dtr.nsgeoresource + "wgs84/" + c.y + "_" + c.x);
       insertarResourceTypeResource(dtr.nsgeoresource + "wgs84/" + c.y + "_" + c.x,
-                                   nsgeo + "Point");
+                                   Constants.NSGEO + "Point");
       insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + c.y + "_" + c.x,
-                              nsgeo + "lat", String.valueOf(c.y), XSDDatatype.XSDdouble);
+                              Constants.NSGEO + "lat", String.valueOf(c.y),
+                              XSDDatatype.XSDdouble);
       insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + c.y + "_" + c.x,
-                              nsgeo + "long", String.valueOf(c.x), XSDDatatype.XSDdouble);
+                              Constants.NSGEO + "long",
+                              String.valueOf(c.x), XSDDatatype.XSDdouble);
       insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + c.y + "_" + c.x,
                               dtr.nsgeontology + "orden", String.valueOf(i), XSDDatatype.XSDint);
 
@@ -436,21 +444,17 @@ public class GMLToRDF implements Constants {
       insertarTripletaResource(dtr.nsgeoresource + hash, dtr.nsgeontology + dtr.formBy,
                                dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX());
       insertarResourceTypeResource(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
-                                   nsgeo + "Point");
+                                   Constants.NSGEO + "Point");
       insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
-                              nsgeo + "lat", String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+                              Constants.NSGEO + "lat",
+                              String.valueOf(p.getY()), XSDDatatype.XSDdouble);
       insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
-                              nsgeo + "long", String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+                              Constants.NSGEO + "long",
+                              String.valueOf(p.getX()), XSDDatatype.XSDdouble);
       insertarTripletaLiteral(dtr.nsgeoresource + "wgs84/" + p.getY() + "_" + p.getX(),
                               dtr.nsgeontology + "order", String.valueOf(i), XSDDatatype.XSDint);
     }
   }
 
-  private static boolean emptyString(String text) {
-    if (text == null && text.equals("")) {
-      return true;
-    } else {
-      return false;
-    }
-  }
+
 }

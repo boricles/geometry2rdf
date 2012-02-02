@@ -1,5 +1,5 @@
 /*
- * @(#) Constants.java	0.1	2010/08/05
+ * @(#) DbConstants.java	0.1	2010/08/05
  *
  * Copyright (C) 2010 vsaquicela,boricles
  *
@@ -19,23 +19,36 @@
  */
 package es.upm.fi.dia.oeg.geometry2rdf.db;
 
-public interface Constants {
+/**
+ * Contants for database library.
+ *
+ * @author boricles
+ * @author jonbaraq
+ *
+ * @version 2nd Feb 2012.
+ */
+public class DbConstants {
 
-  /**
-   *
-   *  @author boricles
-   *
-   */
+
+
+  // DB Types.
   public static final int MSACCESS = 0;
   public static final int MYSQL = 1;
   public static final int ORACLE = 2;
   public static final int POSTGRESQL = 3;
+
+  // DB Drivers
   public static final String[] DRIVERS =
     {"sun.jdbc.odbc.JdbcOdbcDriver", "com.mysql.jdbc.Driver",
      "oracle.jdbc.driver.OracleDriver", "org.postgresql.Driver"};
+
   public static final String[] DBMS = {"MSACCESS", "MYSQL", "ORACLE", "POSTGRESQL"};
-  public static final String[] BASEURL =
+  public static final String[] BASE_URL =
     {"jdbc:odbc:", "jdbc:mysql:", "jdbc:oracle:thin:", "jdbc:postgresql:"};
-  public static final String[] LENPRIMITIVE = {"len", "length", "len"};
+  public static final String[] LEN_PRIMITIVE = {"len", "length", "len"};
   public static final String SEPARATOR = ".";
+
+  public static final String[] TABLE_TYPES = {"TABLE"};
+
+  public static final String TABLE_NAME = "TABLE_NAME";
 }
