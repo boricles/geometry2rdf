@@ -309,7 +309,8 @@ public class SHPToRDF {
     insertarCurva(ls, hash);
   }
 
-  private void insertarPolygon(String resource, String hash, Geometry geo) throws UnsupportedEncodingException {
+  private void insertarPolygon(String resource, String hash, Geometry geo)
+          throws UnsupportedEncodingException {
     insertarResourceTypeResource(nsgeoresource + hash,
                                  nsgeontology + URLEncoder.encode("Polígono",
                                                                   "utf-8").replace("+", "%20"));
