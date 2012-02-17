@@ -10,10 +10,6 @@ package es.upm.fi.dia.oeg.geometry2rdf.shape;
  */
 public class URLConstants {
 
-  public static final String NS_GEO_ONTOLOGY =
-          "http://geo.linkeddata.es/ontology/";
-  public static final String NS_GEO_RESOURCE =
-          "http://geo.linkeddata.es/resource/";
   public static final String NS_GEO =
           "http://www.w3.org/2003/01/geo/wgs84_pos#";
   public static final String NS_GML =
