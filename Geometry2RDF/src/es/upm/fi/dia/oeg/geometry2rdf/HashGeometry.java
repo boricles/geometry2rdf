@@ -27,13 +27,6 @@ import java.security.MessageDigest;
  */
 public class HashGeometry {
 
-  public HashGeometry() {
-  }
-
-  public static void main(String[] args) throws Exception {
-    System.out.println(HashGeometry.getHash("<htl>algunacosa"));
-  }
-
   public static String getHash(String message) {
     MessageDigest md;
     byte[] buffer, digest;
