@@ -62,9 +62,9 @@ import java.sql.ResultSet;
 import java.util.Properties;
 
 import org.geotools.geometry.jts.JTS;
+import org.geotools.gml2.GMLConfiguration;
 import org.geotools.referencing.CRS;
 import org.geotools.xml.Configuration;
-import org.geotools.gml2.GMLConfiguration;
 import org.geotools.xml.Parser;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
