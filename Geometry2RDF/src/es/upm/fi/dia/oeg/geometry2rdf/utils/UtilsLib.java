@@ -1,5 +1,5 @@
 /*
- * @(#) Constants.java	0.1	2012/02/03
+ * @(#) UtilsLib.java	0.1	2012/02/03
  *
  * Copyright (C) 2012 jonbaraq
  *

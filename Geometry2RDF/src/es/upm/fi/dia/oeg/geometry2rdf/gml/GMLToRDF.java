@@ -62,7 +62,10 @@ import java.sql.ResultSet;
 import java.util.Properties;
 
 import org.geotools.geometry.jts.JTS;
+import org.geotools.gml2.GMLConfiguration;
 import org.geotools.referencing.CRS;
+import org.geotools.xml.Configuration;
+import org.geotools.xml.Parser;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.MathTransform;
 
@@ -296,8 +299,8 @@ public class GMLToRDF {
                             String s, String source, String target) {
     try {
       InputStream is = UtilsLib.convertStringToInputStream(s);
-      org.geotools.xml.Configuration configuration = new org.geotools.gml2.GMLConfiguration();
-      org.geotools.xml.Parser parser = new org.geotools.xml.Parser(configuration);
+      Configuration configuration = new GMLConfiguration();
+      Parser parser = new Parser(configuration);
       Geometry o = (Geometry) parser.parse(is);
 
       if (!UtilsLib.isNullOrEmpty(source) && !UtilsLib.isNullOrEmpty(target)) {

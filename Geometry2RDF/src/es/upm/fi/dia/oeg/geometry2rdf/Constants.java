@@ -25,4 +25,13 @@ public class Constants {
   public static final String NSGEO = "http://www.w3.org/2003/01/geo/wgs84_pos#";
   public static final String NSGML = "http://loki.cae.drexel.edu/~wbs/ontology/2004/09/ogc-gml#";
   public static final String NSXSD = "http://www.w3.org/2001/XMLSchema#";
+
+  public static final String LINE_STRING = "LineString";
+  public static final String MULTI_LINE_STRING = "MultiLineString";
+  public static final String POLYGON = "Polygon";
+  public static final String MULTI_POLYGON = "MultiPolygon";
+  public static final String POINT = "Point";
+  public static final String LATITUDE = "lat";
+  public static final String LONGITUDE = "long";
+  public static final String GML = "gml";
 }
