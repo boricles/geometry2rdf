@@ -43,14 +43,20 @@ public final class Configuration {
   public String nsUri = "http://geo.linkeddata.es/resource/";
   public String pointType = "http://www.w3.org/2003/01/geo/wgs84_pos#Point";
   public String lineStringType = "http://geo.linkeddata.es/ontology/Curva";
-  public String polygonType =
-          "http://geo.linkeddata.es/ontology/Pol%C3%ADgono";
+  public String polygonType = "http://geo.linkeddata.es/ontology/Pol%C3%ADgono";
   public String formedBy = "formadoPor";
   public String defaultLang = "es";
   public String featureString;
   public String attribute;
-  public String ignore;
+  public String ignore = "";
   public String type;
+  public String condition = "";
+  public String operation = "";
+  public String langAttribute = "";
+  public String property = "";
+  
+  public String sourceRS;
+  public String targetRS;
 
   private static final Logger LOG = Logger.getLogger(Configuration.class.getName());
 
@@ -118,14 +124,40 @@ public final class Configuration {
     if (!UtilsLib.isNullOrEmpty(properties.getProperty("defaultLang"))) {
       defaultLang = properties.getProperty("defaultLang");
     }
+    
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("condition"))) {
+        condition = properties.getProperty("condition");
+    }
+
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("operation"))) {
+    	operation = properties.getProperty("operation");
+    }
+
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("langAttribute"))) {
+    	langAttribute = properties.getProperty("langAttribute");
+    }
+  
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("ignore"))) {
+    	ignore = properties.getProperty("ignore");
+    }
+
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("property"))) {
+    	property = properties.getProperty("property");
+    }
+    
+    //Reference Systems parameters
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("sourceRS"))) {
+    	sourceRS = properties.getProperty("sourceRS");
+    }
+    
+    if (!UtilsLib.isNullOrEmpty(properties.getProperty("targetRS"))) {
+    	targetRS = properties.getProperty("targetRS");
+    }
 
     featureString = properties.getProperty("featureString");
     attribute = properties.getProperty("attribute");
-    ignore = properties.getProperty("ignore");
     type = properties.getProperty("type");
-    attribute = properties.getProperty("attribute");
-    ignore = properties.getProperty("ignore");
-    type = properties.getProperty("type");
+    
   }
 
 }

@@ -34,6 +34,7 @@ import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.MultiPoint;
 import es.upm.fi.dia.oeg.geometry2rdf.Constants;
 import es.upm.fi.dia.oeg.geometry2rdf.HashGeometry;
 import es.upm.fi.dia.oeg.geometry2rdf.utils.Configuration;
@@ -55,6 +56,12 @@ import org.geotools.data.FeatureSource;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.geotools.feature.simple.SimpleFeatureImpl;
+import org.geotools.geometry.jts.JTS;
+import org.geotools.referencing.CRS;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
+import org.opengis.referencing.operation.TransformException;
 
 /**
  * Class to convert shapefiles to RDF.
@@ -126,6 +133,70 @@ public class ShpToRdf {
     tmpModel.setNsPrefix("xsd", URLConstants.NS_XSD);
     return tmpModel;
   }
+  
+  
+  private boolean validateCondition(String name, String condition, SimpleFeatureImpl feature) {
+  	String attributeValue[];
+  	String values[];
+  	if (condition == null || condition.isEmpty())
+  		return true;
+  	attributeValue = condition.split("\\|");
+  	if (attributeValue.length==2) {
+  		String attribute = attributeValue[0];
+  		values = attributeValue[1].split(",");
+  		
+          if (feature.getAttribute(attribute)!=null)
+          	name = feature.getAttribute(attribute).toString();    		
+  	}
+  	else 
+  		values = attributeValue[0].split(",");
+  	
+  	for (int i=0;i<values.length;i++)
+  		if (name.contains(values[i]))
+  			return true;
+  	return false;
+  }
+  
+  protected String computeOperation(String value, String operation) {
+  	String val = value;  		
+  	
+  	if (operation != null && !operation.isEmpty()){
+  		if (operation.equals(UtilsConstants.SPECIALCASE)) {
+  			String newVal ="";
+  			val = val.toLowerCase();
+  			String []words = val.split("\\s");
+  			for (int i=0; i<words.length; i++) {
+  				if (words[i]!= null && !words[i].isEmpty()) {
+	    				String c = words[i].substring(0,1);
+	    				words[i] = c.toUpperCase() + words[i].substring(1);
+	    				newVal += " " + words[i];
+  				}
+  			}
+  			val = newVal.trim();
+  		}
+  	}
+  	return val;
+  }  
+  
+  protected void insertPropertyResource(String resource, String property, SimpleFeatureImpl feature) {
+	  	if (property == null || property.isEmpty())
+	  		return;
+	  	String properties[];
+	  	properties = property.split("\\|");
+	  	for (int i=0; i<properties.length;i++) {
+	  		String propValue = properties[i];
+	  		String pv[] = propValue.split("\\*");
+	  		if (pv.length!=2)
+	  			break;
+	  		
+	  		String value = feature.getAttribute(pv[0]).toString();
+	  		String prop = pv[1];
+	  		Resource presource = model.createResource(resource);
+	  	    Property pproperty = model.createProperty(prop);
+	  	    presource.addLiteral(pproperty, value);
+	  	}
+	  	return;	  
+  }
 
   public void writeRdfModel() throws UnsupportedEncodingException, FileNotFoundException {
     FeatureIterator iterator = featureCollection.features();
@@ -145,14 +216,33 @@ public class ShpToRdf {
                 "writeRdfModel: Processing feature attribute {0}",
                 featureAttribute);
 
-        if (!featureAttribute.equals(configuration.ignore)) {
+        if (feature.getAttribute(configuration.langAttribute)!=null)
+          	configuration.defaultLang = feature.getAttribute(configuration.langAttribute).toString();
+        LOG.log(Level.INFO, "defaultLang: {0}", configuration.defaultLang);
+        
+        
+        if (!featureAttribute.equals(configuration.ignore) && validateCondition(featureAttribute,configuration.condition,feature)) {
+          
+          String resource = computeOperation(featureAttribute,configuration.operation);
+          
+          if (configuration.targetRS != null && configuration.sourceRS != null) {
+              //It means we have to transform
+              CoordinateReferenceSystem sourceCRS = CRS.decode(configuration.sourceRS);
+              CoordinateReferenceSystem targetCRS = CRS.decode(configuration.targetRS);
+              MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
+              Geometry targetGeometry = JTS.transform(geometry, transform);
+              geometry = targetGeometry;
+          }
+          
           String hash = HashGeometry.getHash(geometry.toText());
+          
           String encodingType =
                   URLEncoder.encode(configuration.type,
                                     UtilsConstants.UTF_8).replace(STRING_TO_REPLACE,
                                                                   REPLACEMENT);
+
           String encodingResource =
-                  URLEncoder.encode(featureAttribute,
+                  URLEncoder.encode(resource,
                                     UtilsConstants.UTF_8).replace(STRING_TO_REPLACE,
                                                                   REPLACEMENT);
           String aux = encodingType + "/" + encodingResource;
@@ -161,8 +251,13 @@ public class ShpToRdf {
              configuration.ontologyNS + URLEncoder.encode(
                  configuration.type, UtilsConstants.UTF_8).replace(
                      STRING_TO_REPLACE, REPLACEMENT));
+          
+          
           insertLabelResource(configuration.nsUri + aux,
-                              featureAttribute, configuration.defaultLang);
+        		  resource, configuration.defaultLang);
+          
+          insertPropertyResource(configuration.nsUri + aux, configuration.property, feature);
+          
           LOG.log(Level.INFO,
                   "writeRdfModel: GeometryType--> {0}",
                   geometry.getGeometryType());
@@ -194,7 +289,10 @@ public class ShpToRdf {
                 insertLineString(aux, newHash, tmpGeometry);
               }
             }
+          } else if (geometry.getGeometryType().equals(Constants.MULTI_POINT)) {
+        	  insertMultiPoint(aux,hash,geometry);
           }
+          
         } else {
           LOG.log(Level.INFO,
                   "writeRdfModel: Not processing feature attribute in position {0}",
@@ -202,6 +300,12 @@ public class ShpToRdf {
         }
         ++position;
       }
+    }
+    catch (FactoryException fe){
+    	fe.printStackTrace();
+    }
+    catch (TransformException te){
+    	te.printStackTrace();
     }
     finally {
       iterator.close();
@@ -222,6 +326,40 @@ public class ShpToRdf {
     }
   }
 
+  protected void insertPoints(MultiPoint points, String hash) {
+	    for (int i = 0; i < points.getNumPoints(); i++) { 
+	        Point p = (Point)points.getGeometryN(i);
+	        insertResourceTriplet(
+	            configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
+	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+	        insertResourceTypeResource(
+	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+	            URLConstants.NS_GEO + Constants.POINT);
+	        insertLiteralTriplet(
+	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+	            URLConstants.NS_GEO + Constants.LATITUDE,
+	            String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+	        insertLiteralTriplet(
+	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+	            URLConstants.NS_GEO + Constants.LONGITUDE,
+	            String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+	      }
+  }
+  
+  protected void insertMultiPoint(String resource, String hash, Geometry geo) {
+	    insertResourceTypeResource(configuration.nsUri + hash,
+                configuration.ontologyNS + "MultiPunto");
+	    insertResourceTriplet(configuration.nsUri + resource,
+           URLConstants.NS_GEO + "geometry",
+           configuration.nsUri + hash);
+	    insertLiteralTriplet(configuration.nsUri + hash,
+          configuration.ontologyNS + Constants.GML,
+          geo.toText(), null);
+	    
+  	  	MultiPoint multiPoint = (MultiPoint) geo;
+	    insertPoints(multiPoint, hash);
+}
+  
   private void insertLineString(String resource, String hash, Geometry geo) {
     insertResourceTypeResource(configuration.nsUri + hash,
                                configuration.ontologyNS + "Curva");
@@ -240,7 +378,7 @@ public class ShpToRdf {
     insertResourceTypeResource(
             configuration.nsUri + hash,
             configuration.ontologyNS
-            + URLEncoder.encode("PolÃ­gono", UtilsConstants.UTF_8).replace(
+            + URLEncoder.encode("Pol’gono", UtilsConstants.UTF_8).replace(
                  STRING_TO_REPLACE, REPLACEMENT));
     insertResourceTriplet(configuration.nsUri + resource,
                           URLConstants.NS_GEO + "geometry",
@@ -285,7 +423,7 @@ public class ShpToRdf {
     int i = 0;
     for (Coordinate c : po.getCoordinates()) {
       insertResourceTriplet(
-          configuration.nsUri + hash, configuration.ontologyNS + "formadoPor",
+          configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
           configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x);
       insertResourceTypeResource(
           configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x,
@@ -309,7 +447,7 @@ public class ShpToRdf {
     for (int i = 0; i < ls.getNumPoints(); i++) { //puntos de la geometria X,Y
       Point p = ls.getPointN(i);
       insertResourceTriplet(
-          configuration.nsUri + hash, configuration.ontologyNS + "formadoPor",
+          configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
           configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
       insertResourceTypeResource(
           configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),

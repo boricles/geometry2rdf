@@ -13,12 +13,17 @@ import java.io.IOException;
  * @author jonathangsc
  */
 public class ShpToRdfMain {
-  public static void main(String [] args) throws IOException {
-    Configuration configuration =
-            new Configuration(
-                    "/home/jonathangsc/Downloads/tmp_geo/shpoptions.properties");
-    ShpToRdf shpConverter = new ShpToRdf(configuration);
-    shpConverter.writeRdfModel();
+
+	public static void main(String [] args) throws IOException {
+	  
+	if (args.length==1) {  
+		String propertiesFilePath = args[0];
+	    Configuration configuration =new Configuration(propertiesFilePath);
+	    ShpToRdf shpConverter = new ShpToRdf(configuration);
+	    shpConverter.writeRdfModel();
+	}
+	else
+		System.err.println("Incorrect number of arguments. Please specify the properties file location.");
   }
 
 }

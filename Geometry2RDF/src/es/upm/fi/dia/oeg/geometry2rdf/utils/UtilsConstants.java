@@ -30,5 +30,7 @@ public class UtilsConstants {
   public static final String WGS84 = "wgs84/";
   public static final String LINE_SEPARATOR = "\n";
   public static final String UTF_8 = "UTF-8";
+  
+  public static final String SPECIALCASE = "SPECIALCASE";
 
 }

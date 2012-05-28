@@ -31,6 +31,7 @@ public class Constants {
   public static final String POLYGON = "Polygon";
   public static final String MULTI_POLYGON = "MultiPolygon";
   public static final String POINT = "Point";
+  public static final String MULTI_POINT = "MultiPoint";
   public static final String LATITUDE = "lat";
   public static final String LONGITUDE = "long";
   public static final String GML = "gml";
