@@ -16,14 +16,14 @@ public class ShpToRdfMain {
 
 	public static void main(String [] args) throws IOException {
 	  
-	if (args.length==1) {  
-		String propertiesFilePath = args[0];
-	    Configuration configuration =new Configuration(propertiesFilePath);
+	  if (args.length == 1) {  
+            String propertiesFilePath = args[0];
+	    Configuration configuration = new Configuration(propertiesFilePath);
 	    ShpToRdf shpConverter = new ShpToRdf(configuration);
 	    shpConverter.writeRdfModel();
-	}
-	else
+	  } else {
 		System.err.println("Incorrect number of arguments. Please specify the properties file location.");
-  }
+          }
+        }
 
 }
