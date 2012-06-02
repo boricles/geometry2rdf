@@ -70,417 +70,418 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class ShpToRdf {
 
-  private static final Logger LOG = Logger.getLogger(ShpToRdf.class.getName());
+    private static final Logger LOG = Logger.getLogger(ShpToRdf.class.getName());
+    private static final String STRING_TO_REPLACE = "+";
+    private static final String REPLACEMENT = "%20";
+    private static final String SEPARATOR = "_";
+    private Model model;
+    private Configuration configuration;
+    private FeatureCollection featureCollection;
 
-  private static final String STRING_TO_REPLACE = "+";
-  private static final String REPLACEMENT = "%20";
-  private static final String SEPARATOR = "_";
-
-  private Model model;
-  private Configuration configuration;
-  private FeatureCollection featureCollection;
-
-  public ShpToRdf(Configuration configuration) throws IOException {
-    this.configuration = configuration;
-    model = getModelFromConfiguration(configuration);
-    featureCollection = getShapeFileFeatureCollection(configuration.inputFile,
-                                                      configuration.featureString);
-  }
-
-  /**
-   * Loads the shape file from the configuration path and returns the
-   * feature collection associated according to the configuration.
-   *
-   * @param shapePath with the path to the shapefile.
-   * @param featureString with the featureString to filter.
-   *
-   * @return FeatureCollection with the collection of features filtered.
-   */
-  private FeatureCollection getShapeFileFeatureCollection(
-          String shapePath, String featureString) throws IOException {
-    File file = new File(shapePath);
-
-    // Create the map with the file URL to be passed to DataStore.
-    Map map = new HashMap();
-    try {
-      map.put("url", file.toURL());
-    } catch (MalformedURLException ex) {
-      Logger.getLogger(ShpToRdf.class.getName()).log(Level.SEVERE, null, ex);
+    public ShpToRdf(Configuration configuration) throws IOException {
+        this.configuration = configuration;
+        model = getModelFromConfiguration(configuration);
+        featureCollection = getShapeFileFeatureCollection(configuration.inputFile,
+                configuration.featureString);
     }
-    if (map.size() > 0) {
-      DataStore dataStore = DataStoreFinder.getDataStore(map);
-      FeatureSource featureSource = dataStore.getFeatureSource(featureString);
-      return featureSource.getFeatures();
-    }
-    return null;
-  }
 
-  /**
-   * Returns a Jena RDF model populated with the params from the configuration.
-   *
-   * @param configuration with all the configuration parameters.
-   *
-   * @return a Jena RDF model populated with the params from the configuration.
-   */
-  private Model getModelFromConfiguration(Configuration configuration) {
-    removeDirectory(configuration.tmpDir);
-    Model tmpModel = TDBFactory.createModel(configuration.tmpDir);
-    tmpModel.removeAll();
-    tmpModel.setNsPrefix("geontology", configuration.ontologyNS);
-    tmpModel.setNsPrefix("georesource", configuration.nsUri);
-    tmpModel.setNsPrefix("geo", URLConstants.NS_GEO);
-    tmpModel.setNsPrefix("dc", URLConstants.NS_DC);
-    tmpModel.setNsPrefix("xsd", URLConstants.NS_XSD);
-    return tmpModel;
-  }
-  
-  
-  private boolean validateCondition(String name, String condition, SimpleFeatureImpl feature) {
-  	String attributeValue[];
-  	String values[];
-  	if (condition == null || condition.isEmpty())
-  		return true;
-  	attributeValue = condition.split("\\|");
-  	if (attributeValue.length == 2) {
-  		String attribute = attributeValue[0];
-  		values = attributeValue[1].split(",");
-  		
-          if (feature.getAttribute(attribute)!=null)
-          	name = feature.getAttribute(attribute).toString();    		
-  	}
-  	else 
-  		values = attributeValue[0].split(",");
-  	
-  	for (int i=0;i<values.length;i++)
-  		if (name.contains(values[i]))
-  			return true;
-  	return false;
-  }
-  
-  protected String computeOperation(String value, String operation) {
-  	String val = value;  		
-  	
-  	if (operation != null && !operation.isEmpty()){
-  		if (operation.equals(UtilsConstants.SPECIALCASE)) {
-  			String newVal ="";
-  			val = val.toLowerCase();
-  			String []words = val.split("\\s");
-  			for (int i=0; i<words.length; i++) {
-  				if (words[i]!= null && !words[i].isEmpty()) {
-	    				String c = words[i].substring(0,1);
-	    				words[i] = c.toUpperCase() + words[i].substring(1);
-	    				newVal += " " + words[i];
-  				}
-  			}
-  			val = newVal.trim();
-  		}
-  	}
-  	return val;
-  }  
-  
-  protected void insertPropertyResource(String resource, String property, SimpleFeatureImpl feature) {
-	  	if (property == null || property.isEmpty())
-	  		return;
-	  	String properties[];
-	  	properties = property.split("\\|");
-	  	for (int i=0; i<properties.length;i++) {
-	  		String propValue = properties[i];
-	  		String pv[] = propValue.split("\\*");
-	  		if (pv.length!=2)
-	  			break;
-	  		
-	  		String value = feature.getAttribute(pv[0]).toString();
-	  		String prop = pv[1];
-	  		Resource presource = model.createResource(resource);
-	  	    Property pproperty = model.createProperty(prop);
-	  	    presource.addLiteral(pproperty, value);
-	  	}
-	  	return;	  
-  }
+    /**
+     * Loads the shape file from the configuration path and returns the feature
+     * collection associated according to the configuration.
+     *
+     * @param shapePath with the path to the shapefile.
+     * @param featureString with the featureString to filter.
+     *
+     * @return FeatureCollection with the collection of features filtered.
+     */
+    private FeatureCollection getShapeFileFeatureCollection(
+            String shapePath, String featureString) throws IOException {
+        File file = new File(shapePath);
 
-  public void writeRdfModel() throws UnsupportedEncodingException, FileNotFoundException {
-    FeatureIterator iterator = featureCollection.features();
-    try {
-      int position = 0;
-      while(iterator.hasNext()) {
-        SimpleFeatureImpl feature = (SimpleFeatureImpl) iterator.next();
-        Geometry geometry = (Geometry) feature.getDefaultGeometry();
-
-        String featureAttribute = "featureWithoutName";
-
-        if (feature.getAttribute(configuration.attribute) != null) {
-          featureAttribute = feature.getAttribute(configuration.attribute).toString();
+        // Create the map with the file URL to be passed to DataStore.
+        Map map = new HashMap();
+        try {
+            map.put("url", file.toURL());
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(ShpToRdf.class.getName()).log(Level.SEVERE, null, ex);
         }
+        if (map.size() > 0) {
+            DataStore dataStore = DataStoreFinder.getDataStore(map);
+            FeatureSource featureSource = dataStore.getFeatureSource(featureString);
+            return featureSource.getFeatures();
+        }
+        return null;
+    }
 
-        LOG.log(Level.INFO,
-                "writeRdfModel: Processing feature attribute {0}",
-                featureAttribute);
+    /**
+     * Returns a Jena RDF model populated with the params from the
+     * configuration.
+     *
+     * @param configuration with all the configuration parameters.
+     *
+     * @return a Jena RDF model populated with the params from the
+     * configuration.
+     */
+    private Model getModelFromConfiguration(Configuration configuration) {
+        removeDirectory(configuration.tmpDir);
+        Model tmpModel = TDBFactory.createModel(configuration.tmpDir);
+        tmpModel.removeAll();
+        tmpModel.setNsPrefix("geontology", configuration.ontologyNS);
+        tmpModel.setNsPrefix("georesource", configuration.nsUri);
+        tmpModel.setNsPrefix("geo", URLConstants.NS_GEO);
+        tmpModel.setNsPrefix("dc", URLConstants.NS_DC);
+        tmpModel.setNsPrefix("xsd", URLConstants.NS_XSD);
+        return tmpModel;
+    }
 
-        if (feature.getAttribute(configuration.langAttribute)!=null)
-          	configuration.defaultLang = feature.getAttribute(configuration.langAttribute).toString();
-        LOG.log(Level.INFO, "defaultLang: {0}", configuration.defaultLang);
-        
-        
-        if (!featureAttribute.equals(configuration.ignore) && validateCondition(featureAttribute,configuration.condition,feature)) {
-          
-          String resource = computeOperation(featureAttribute,configuration.operation);
-          
-          if (configuration.targetRS != null && configuration.sourceRS != null) {
-              //It means we have to transform
-              CoordinateReferenceSystem sourceCRS = CRS.decode(configuration.sourceRS);
-              CoordinateReferenceSystem targetCRS = CRS.decode(configuration.targetRS);
-              MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
-              Geometry targetGeometry = JTS.transform(geometry, transform);
-              geometry = targetGeometry;
-          }
-          
-          String hash = HashGeometry.getHash(geometry.toText());
-          
-          String encodingType =
-                  URLEncoder.encode(configuration.type,
-                                    UtilsConstants.UTF_8).replace(STRING_TO_REPLACE,
-                                                                  REPLACEMENT);
+    private boolean validateCondition(String name, String condition, SimpleFeatureImpl feature) {
+        String attributeValue[];
+        String values[];
+        if (condition == null || condition.isEmpty()) {
+            return true;
+        }
+        attributeValue = condition.split("\\|");
+        if (attributeValue.length == 2) {
+            String attribute = attributeValue[0];
+            values = attributeValue[1].split(",");
 
-          String encodingResource =
-                  URLEncoder.encode(resource,
-                                    UtilsConstants.UTF_8).replace(STRING_TO_REPLACE,
-                                                                  REPLACEMENT);
-          String aux = encodingType + "/" + encodingResource;
-          insertResourceTypeResource(
-             configuration.nsUri + aux,
-             configuration.ontologyNS + URLEncoder.encode(
-                 configuration.type, UtilsConstants.UTF_8).replace(
-                     STRING_TO_REPLACE, REPLACEMENT));
-          
-          
-          insertLabelResource(configuration.nsUri + aux,
-        		  resource, configuration.defaultLang);
-          
-          insertPropertyResource(configuration.nsUri + aux, configuration.property, feature);
-          
-          LOG.log(Level.INFO,
-                  "writeRdfModel: GeometryType--> {0}",
-                  geometry.getGeometryType());
-          if (geometry.getGeometryType().equals(Constants.POINT)) {
-            insertPoint((Point) geometry, aux);
-          } else if (geometry.getGeometryType().equals(Constants.LINE_STRING)) {
-            insertLineString(aux, hash, geometry);
-          } else if (geometry.getGeometryType().equals(Constants.POLYGON)) {
-            insertPolygon(aux, hash, geometry);
-          } else if (geometry.getGeometryType().equals(Constants.MULTI_POLYGON)) {
-            MultiPolygon multiPolygon = (MultiPolygon) geometry;
-            for (int i = 0; i < multiPolygon.getNumGeometries(); ++i) {
-              Geometry tmpGeometry = multiPolygon.getGeometryN(i);
-              String newHash = HashGeometry.getHash(tmpGeometry.toText());
-              if (tmpGeometry.getGeometryType().equals(Constants.POLYGON)) {
-                insertPolygon(aux, newHash, tmpGeometry);
-              } else if (tmpGeometry.getGeometryType().equals(Constants.LINE_STRING)) {
-                insertLineString(aux, newHash, tmpGeometry);
-              }
+            if (feature.getAttribute(attribute) != null) {
+                name = feature.getAttribute(attribute).toString();
             }
-          } else if (geometry.getGeometryType().equals(Constants.MULTI_LINE_STRING)) {
-            MultiLineString multiLineString = (MultiLineString) geometry;
-            for (int i = 0; i < multiLineString.getNumGeometries(); ++i) {
-              Geometry tmpGeometry = multiLineString.getGeometryN(i);
-              String newHash = HashGeometry.getHash(tmpGeometry.toText());
-              if (tmpGeometry.getGeometryType().equals(Constants.POLYGON)) {
-                insertPolygon(aux, newHash, tmpGeometry);
-              } else if (tmpGeometry.getGeometryType().equals(Constants.LINE_STRING)) {
-                insertLineString(aux, newHash, tmpGeometry);
-              }
-            }
-          } else if (geometry.getGeometryType().equals(Constants.MULTI_POINT)) {
-        	  insertMultiPoint(aux,hash,geometry);
-          }
-          
         } else {
-          LOG.log(Level.INFO,
-                  "writeRdfModel: Not processing feature attribute in position {0}",
-                  position);
+            values = attributeValue[0].split(",");
         }
-        ++position;
-      }
+
+        for (int i = 0; i < values.length; i++) {
+            if (name.contains(values[i])) {
+                return true;
+            }
+        }
+        return false;
     }
-    catch (FactoryException fe){
-    	fe.printStackTrace();
+
+    protected String computeOperation(String value, String operation) {
+        String val = value;
+
+        if (operation != null && !operation.isEmpty()) {
+            if (operation.equals(UtilsConstants.SPECIALCASE)) {
+                String newVal = "";
+                val = val.toLowerCase();
+                String[] words = val.split("\\s");
+                for (int i = 0; i < words.length; i++) {
+                    if (words[i] != null && !words[i].isEmpty()) {
+                        String c = words[i].substring(0, 1);
+                        words[i] = c.toUpperCase() + words[i].substring(1);
+                        newVal += " " + words[i];
+                    }
+                }
+                val = newVal.trim();
+            }
+        }
+        return val;
     }
-    catch (TransformException te){
-    	te.printStackTrace();
+
+    protected void insertPropertyResource(String resource, String property, SimpleFeatureImpl feature) {
+        if (property == null || property.isEmpty()) {
+            return;
+        }
+        String properties[];
+        properties = property.split("\\|");
+        for (int i = 0; i < properties.length; i++) {
+            String propValue = properties[i];
+            String pv[] = propValue.split("\\*");
+            if (pv.length != 2) {
+                break;
+            }
+
+            String value = feature.getAttribute(pv[0]).toString();
+            String prop = pv[1];
+            Resource presource = model.createResource(resource);
+            Property pproperty = model.createProperty(prop);
+            presource.addLiteral(pproperty, value);
+        }
     }
-    finally {
-      iterator.close();
-    }
-    FileOutputStream out = new FileOutputStream(configuration.outputFile);
-    model.write(out);
-  }
+
+    public void writeRdfModel() throws UnsupportedEncodingException, FileNotFoundException {
+        FeatureIterator iterator = featureCollection.features();
+        try {
+            int position = 0;
+            while (iterator.hasNext()) {
+                SimpleFeatureImpl feature = (SimpleFeatureImpl) iterator.next();
+                Geometry geometry = (Geometry) feature.getDefaultGeometry();
+
+                String featureAttribute = "featureWithoutName";
+
+                if (feature.getAttribute(configuration.attribute) != null) {
+                    featureAttribute = feature.getAttribute(configuration.attribute).toString();
+                }
+
+                LOG.log(Level.INFO,
+                        "writeRdfModel: Processing feature attribute {0}",
+                        featureAttribute);
+
+                if (feature.getAttribute(configuration.langAttribute) != null) {
+                    configuration.defaultLang = feature.getAttribute(configuration.langAttribute).toString();
+                }
+                LOG.log(Level.INFO, "defaultLang: {0}", configuration.defaultLang);
 
 
-  private void removeDirectory(String path) {
-    File filePath = new File(path);
-    if (filePath.exists()) {
-      for (String fileInDirectory : filePath.list()) {
-        File tmpFile = new File(path + "/" + fileInDirectory);
-        tmpFile.delete();
-      }
-      filePath.delete();
-    }
-  }
+                if (!featureAttribute.equals(configuration.ignore) && validateCondition(featureAttribute, configuration.condition, feature)) {
 
-  protected void insertPoints(MultiPoint points, String hash) {
-	    for (int i = 0; i < points.getNumPoints(); i++) { 
-	        Point p = (Point)points.getGeometryN(i);
-	        insertResourceTriplet(
-	            configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
-	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
-	        insertResourceTypeResource(
-	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
-	            URLConstants.NS_GEO + Constants.POINT);
-	        insertLiteralTriplet(
-	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-	            URLConstants.NS_GEO + Constants.LATITUDE,
-	            String.valueOf(p.getY()), XSDDatatype.XSDdouble);
-	        insertLiteralTriplet(
-	            configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-	            URLConstants.NS_GEO + Constants.LONGITUDE,
-	            String.valueOf(p.getX()), XSDDatatype.XSDdouble);
-	      }
-  }
-  
-  protected void insertMultiPoint(String resource, String hash, Geometry geo) {
-	    insertResourceTypeResource(configuration.nsUri + hash,
+                    String resource = computeOperation(featureAttribute, configuration.operation);
+
+                    if (configuration.targetRS != null && configuration.sourceRS != null) {
+                        //It means we have to transform
+                        CoordinateReferenceSystem sourceCRS = CRS.decode(configuration.sourceRS);
+                        CoordinateReferenceSystem targetCRS = CRS.decode(configuration.targetRS);
+                        MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
+                        Geometry targetGeometry = JTS.transform(geometry, transform);
+                        geometry = targetGeometry;
+                    }
+
+                    String hash = HashGeometry.getHash(geometry.toText());
+
+                    String encodingType =
+                            URLEncoder.encode(configuration.type,
+                            UtilsConstants.UTF_8).replace(STRING_TO_REPLACE,
+                            REPLACEMENT);
+
+                    String encodingResource =
+                            URLEncoder.encode(resource,
+                            UtilsConstants.UTF_8).replace(STRING_TO_REPLACE,
+                            REPLACEMENT);
+                    String aux = encodingType + "/" + encodingResource;
+                    insertResourceTypeResource(
+                            configuration.nsUri + aux,
+                            configuration.ontologyNS + URLEncoder.encode(
+                            configuration.type, UtilsConstants.UTF_8).replace(
+                            STRING_TO_REPLACE, REPLACEMENT));
+
+
+                    insertLabelResource(configuration.nsUri + aux,
+                            resource, configuration.defaultLang);
+
+                    insertPropertyResource(configuration.nsUri + aux, configuration.property, feature);
+
+                    LOG.log(Level.INFO,
+                            "writeRdfModel: GeometryType--> {0}",
+                            geometry.getGeometryType());
+                    if (geometry.getGeometryType().equals(Constants.POINT)) {
+                        insertPoint((Point) geometry, aux);
+                    } else if (geometry.getGeometryType().equals(Constants.LINE_STRING)) {
+                        insertLineString(aux, hash, geometry);
+                    } else if (geometry.getGeometryType().equals(Constants.POLYGON)) {
+                        insertPolygon(aux, hash, geometry);
+                    } else if (geometry.getGeometryType().equals(Constants.MULTI_POLYGON)) {
+                        MultiPolygon multiPolygon = (MultiPolygon) geometry;
+                        for (int i = 0; i < multiPolygon.getNumGeometries(); ++i) {
+                            Geometry tmpGeometry = multiPolygon.getGeometryN(i);
+                            String newHash = HashGeometry.getHash(tmpGeometry.toText());
+                            if (tmpGeometry.getGeometryType().equals(Constants.POLYGON)) {
+                                insertPolygon(aux, newHash, tmpGeometry);
+                            } else if (tmpGeometry.getGeometryType().equals(Constants.LINE_STRING)) {
+                                insertLineString(aux, newHash, tmpGeometry);
+                            }
+                        }
+                    } else if (geometry.getGeometryType().equals(Constants.MULTI_LINE_STRING)) {
+                        MultiLineString multiLineString = (MultiLineString) geometry;
+                        for (int i = 0; i < multiLineString.getNumGeometries(); ++i) {
+                            Geometry tmpGeometry = multiLineString.getGeometryN(i);
+                            String newHash = HashGeometry.getHash(tmpGeometry.toText());
+                            if (tmpGeometry.getGeometryType().equals(Constants.POLYGON)) {
+                                insertPolygon(aux, newHash, tmpGeometry);
+                            } else if (tmpGeometry.getGeometryType().equals(Constants.LINE_STRING)) {
+                                insertLineString(aux, newHash, tmpGeometry);
+                            }
+                        }
+                    } else if (geometry.getGeometryType().equals(Constants.MULTI_POINT)) {
+                        insertMultiPoint(aux, hash, geometry);
+                    }
+
+                } else {
+                    LOG.log(Level.INFO,
+                            "writeRdfModel: Not processing feature attribute in position {0}",
+                            position);
+                }
+                ++position;
+            }
+        } catch (FactoryException fe) {
+            fe.printStackTrace();
+        } catch (TransformException te) {
+            te.printStackTrace();
+        } finally {
+            iterator.close();
+        }
+        FileOutputStream out = new FileOutputStream(configuration.outputFile);
+        model.write(out);
+    }
+
+    private void removeDirectory(String path) {
+        File filePath = new File(path);
+        if (filePath.exists()) {
+            for (String fileInDirectory : filePath.list()) {
+                File tmpFile = new File(path + "/" + fileInDirectory);
+                tmpFile.delete();
+            }
+            filePath.delete();
+        }
+    }
+
+    protected void insertPoints(MultiPoint points, String hash) {
+        for (int i = 0; i < points.getNumPoints(); i++) {
+            Point p = (Point) points.getGeometryN(i);
+            insertResourceTriplet(
+                    configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+            insertResourceTypeResource(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                    URLConstants.NS_GEO + Constants.POINT);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    URLConstants.NS_GEO + Constants.LATITUDE,
+                    String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    URLConstants.NS_GEO + Constants.LONGITUDE,
+                    String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+        }
+    }
+
+    protected void insertMultiPoint(String resource, String hash, Geometry geo) {
+        insertResourceTypeResource(configuration.nsUri + hash,
                 configuration.ontologyNS + "MultiPunto");
-	    insertResourceTriplet(configuration.nsUri + resource,
-           URLConstants.NS_GEO + "geometry",
-           configuration.nsUri + hash);
-	    insertLiteralTriplet(configuration.nsUri + hash,
-          configuration.ontologyNS + Constants.GML,
-          geo.toText(), null);
-	    
-  	  	MultiPoint multiPoint = (MultiPoint) geo;
-	    insertPoints(multiPoint, hash);
-}
-  
-  private void insertLineString(String resource, String hash, Geometry geo) {
-    insertResourceTypeResource(configuration.nsUri + hash,
-                               configuration.ontologyNS + "Curva");
-    insertResourceTriplet(configuration.nsUri + resource,
-                          URLConstants.NS_GEO + "geometry",
-                          configuration.nsUri + hash);
-    insertLiteralTriplet(configuration.nsUri + hash,
-                         configuration.ontologyNS + Constants.GML,
-                         geo.toText(), null);
-    LineString lineString = (LineString) geo;
-    insertCurve(lineString, hash);
-  }
+        insertResourceTriplet(configuration.nsUri + resource,
+                URLConstants.NS_GEO + "geometry",
+                configuration.nsUri + hash);
+        insertLiteralTriplet(configuration.nsUri + hash,
+                configuration.ontologyNS + Constants.GML,
+                geo.toText(), null);
 
-  private void insertPolygon(String resource, String hash, Geometry geo)
-          throws UnsupportedEncodingException {
-    insertResourceTypeResource(
-            configuration.nsUri + hash,
-            configuration.ontologyNS
-            + URLEncoder.encode("Pol�gono", UtilsConstants.UTF_8).replace(
-                 STRING_TO_REPLACE, REPLACEMENT));
-    insertResourceTriplet(configuration.nsUri + resource,
-                          URLConstants.NS_GEO + "geometry",
-                          configuration.nsUri + hash);
-    insertLiteralTriplet(configuration.nsUri + hash,
-                         configuration.ontologyNS + Constants.GML,
-                         geo.toText(), null);
-    Polygon polygon = (Polygon) geo;
-    insertPolygon(polygon, hash);
-  }
-
-  private void insertResourceTypeResource(String r1, String r2) {
-    Resource resource1 = model.createResource(r1);
-    Resource resource2 = model.createResource(r2);
-    model.add(resource1, RDF.type, resource2);
-  }
-
-  private void insertLiteralTriplet(String s, String p, String o, XSDDatatype x) {
-    Resource resourceGeometry = model.createResource(s);
-    Property property = model.createProperty(p);
-    if (x != null) {
-      Literal literal = model.createTypedLiteral(o, x);
-      resourceGeometry.addLiteral(property, literal);
-    } else {
-      resourceGeometry.addProperty(property, o);
+        MultiPoint multiPoint = (MultiPoint) geo;
+        insertPoints(multiPoint, hash);
     }
-  }
 
-  private void insertResourceTriplet(String s, String p, String o) {
-    Resource resourceGeometry = model.createResource(s);
-    Property property = model.createProperty(p);
-    Resource resourceGeometry2 = model.createResource(o);
-    resourceGeometry.addProperty(property, resourceGeometry2);
-  }
-
-  private void insertLabelResource(String resource, String label, String lang) {
-    Resource resource1 = model.createResource(resource);
-    model.add(resource1, RDFS.label, model.createLiteral(label, lang));
-  }
-
-  private void insertPolygon(Polygon po, String hash) {
-    int i = 0;
-    for (Coordinate c : po.getCoordinates()) {
-      insertResourceTriplet(
-          configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
-          configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x);
-      insertResourceTypeResource(
-          configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x,
-          URLConstants.NS_GEO + Constants.POINT);
-      insertLiteralTriplet(
-          configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
-          URLConstants.NS_GEO + Constants.LATITUDE,
-          String.valueOf(c.y), XSDDatatype.XSDdouble);
-      insertLiteralTriplet(
-          configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
-          URLConstants.NS_GEO + Constants.LONGITUDE,
-          String.valueOf(c.x), XSDDatatype.XSDdouble);
-      insertLiteralTriplet(
-          configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
-          configuration.ontologyNS + "orden", String.valueOf(i), XSDDatatype.XSDint);
-      i++;
+    private void insertLineString(String resource, String hash, Geometry geo) {
+        insertResourceTypeResource(configuration.nsUri + hash,
+                configuration.ontologyNS + "Curva");
+        insertResourceTriplet(configuration.nsUri + resource,
+                URLConstants.NS_GEO + "geometry",
+                configuration.nsUri + hash);
+        insertLiteralTriplet(configuration.nsUri + hash,
+                configuration.ontologyNS + Constants.GML,
+                geo.toText(), null);
+        LineString lineString = (LineString) geo;
+        insertCurve(lineString, hash);
     }
-  }
 
-  private void insertCurve(LineString ls, String hash) {
-    for (int i = 0; i < ls.getNumPoints(); i++) { //puntos de la geometria X,Y
-      Point p = ls.getPointN(i);
-      insertResourceTriplet(
-          configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
-          configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
-      insertResourceTypeResource(
-          configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
-          URLConstants.NS_GEO + Constants.POINT);
-      insertLiteralTriplet(
-          configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-          URLConstants.NS_GEO + Constants.LATITUDE,
-          String.valueOf(p.getY()), XSDDatatype.XSDdouble);
-      insertLiteralTriplet(
-          configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-          URLConstants.NS_GEO + Constants.LONGITUDE,
-          String.valueOf(p.getX()), XSDDatatype.XSDdouble);
-      insertLiteralTriplet(
-          configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-          configuration.ontologyNS + "order", String.valueOf(i), XSDDatatype.XSDint);
+    private void insertPolygon(String resource, String hash, Geometry geo)
+            throws UnsupportedEncodingException {
+        insertResourceTypeResource(
+                configuration.nsUri + hash,
+                configuration.ontologyNS
+                + URLEncoder.encode("Pol�gono", UtilsConstants.UTF_8).replace(
+                STRING_TO_REPLACE, REPLACEMENT));
+        insertResourceTriplet(configuration.nsUri + resource,
+                URLConstants.NS_GEO + "geometry",
+                configuration.nsUri + hash);
+        insertLiteralTriplet(configuration.nsUri + hash,
+                configuration.ontologyNS + Constants.GML,
+                geo.toText(), null);
+        Polygon polygon = (Polygon) geo;
+        insertPolygon(polygon, hash);
     }
-  }
 
-  private void insertPoint(Point p, String resource) {
-    insertResourceTriplet(
-        configuration.nsUri + resource, URLConstants.NS_GEO + "geometry",
-        configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
-    insertResourceTypeResource(
-       configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
-       URLConstants.NS_GEO + Constants.POINT);
-    insertLiteralTriplet(
-        configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
-        URLConstants.NS_GEO + Constants.LATITUDE,
-        String.valueOf(p.getY()), XSDDatatype.XSDdouble);
-    insertLiteralTriplet(
-        configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-        URLConstants.NS_GEO + Constants.LONGITUDE,
-        String.valueOf(p.getX()), XSDDatatype.XSDdouble);
-  }
+    private void insertResourceTypeResource(String r1, String r2) {
+        Resource resource1 = model.createResource(r1);
+        Resource resource2 = model.createResource(r2);
+        model.add(resource1, RDF.type, resource2);
+    }
 
+    private void insertLiteralTriplet(String s, String p, String o, XSDDatatype x) {
+        Resource resourceGeometry = model.createResource(s);
+        Property property = model.createProperty(p);
+        if (x != null) {
+            Literal literal = model.createTypedLiteral(o, x);
+            resourceGeometry.addLiteral(property, literal);
+        } else {
+            resourceGeometry.addProperty(property, o);
+        }
+    }
+
+    private void insertResourceTriplet(String s, String p, String o) {
+        Resource resourceGeometry = model.createResource(s);
+        Property property = model.createProperty(p);
+        Resource resourceGeometry2 = model.createResource(o);
+        resourceGeometry.addProperty(property, resourceGeometry2);
+    }
+
+    private void insertLabelResource(String resource, String label, String lang) {
+        Resource resource1 = model.createResource(resource);
+        model.add(resource1, RDFS.label, model.createLiteral(label, lang));
+    }
+
+    private void insertPolygon(Polygon po, String hash) {
+        int i = 0;
+        for (Coordinate c : po.getCoordinates()) {
+            insertResourceTriplet(
+                    configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
+                    configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x);
+            insertResourceTypeResource(
+                    configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x,
+                    URLConstants.NS_GEO + Constants.POINT);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
+                    URLConstants.NS_GEO + Constants.LATITUDE,
+                    String.valueOf(c.y), XSDDatatype.XSDdouble);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
+                    URLConstants.NS_GEO + Constants.LONGITUDE,
+                    String.valueOf(c.x), XSDDatatype.XSDdouble);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
+                    configuration.ontologyNS + "orden", String.valueOf(i), XSDDatatype.XSDint);
+            i++;
+        }
+    }
+
+    private void insertCurve(LineString ls, String hash) {
+        for (int i = 0; i < ls.getNumPoints(); i++) { //puntos de la geometria X,Y
+            Point p = ls.getPointN(i);
+            insertResourceTriplet(
+                    configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+            insertResourceTypeResource(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                    URLConstants.NS_GEO + Constants.POINT);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    URLConstants.NS_GEO + Constants.LATITUDE,
+                    String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    URLConstants.NS_GEO + Constants.LONGITUDE,
+                    String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+            insertLiteralTriplet(
+                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    configuration.ontologyNS + "order", String.valueOf(i), XSDDatatype.XSDint);
+        }
+    }
+
+    private void insertPoint(Point p, String resource) {
+        insertResourceTriplet(
+                configuration.nsUri + resource, URLConstants.NS_GEO + "geometry",
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+        insertResourceTypeResource(
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                URLConstants.NS_GEO + Constants.POINT);
+        insertLiteralTriplet(
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                URLConstants.NS_GEO + Constants.LATITUDE,
+                String.valueOf(p.getY()), XSDDatatype.XSDdouble);
+        insertLiteralTriplet(
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                URLConstants.NS_GEO + Constants.LONGITUDE,
+                String.valueOf(p.getX()), XSDDatatype.XSDdouble);
+    }
+    
 }
