@@ -210,6 +210,13 @@ public class ShpToRdf {
 
     public void writeRdfModel()
             throws UnsupportedEncodingException, FileNotFoundException {
+        FileOutputStream out = new FileOutputStream(configuration.outputFile);
+        model = getRdfModel();
+        model.write(out);
+    }
+
+    public Model getRdfModel()
+            throws UnsupportedEncodingException, FileNotFoundException { 
         FeatureIterator iterator = featureCollection.features();
         try {
             int position = 0;
@@ -336,7 +343,8 @@ public class ShpToRdf {
 
                 } else {
                     LOG.log(Level.INFO,
-                            "writeRdfModel: Not processing feature attribute in position {0}",
+                            "writeRdfModel: Not processing feature "
+                            + "attribute in position {0}",
                             position);
                 }
                 ++position;
@@ -348,8 +356,7 @@ public class ShpToRdf {
         } finally {
             iterator.close();
         }
-        FileOutputStream out = new FileOutputStream(configuration.outputFile);
-        model.write(out);
+        return model;
     }
 
     private void removeDirectory(String path) {
@@ -496,7 +503,8 @@ public class ShpToRdf {
     }
 
     private void insertCurve(LineString ls, String hash) {
-        for (int i = 0; i < ls.getNumPoints(); i++) { //puntos de la geometria X,Y
+        //puntos de la geometria X,Y
+        for (int i = 0; i < ls.getNumPoints(); i++) {
             Point p = ls.getPointN(i);
             insertResourceTriplet(
                     configuration.nsUri + hash, configuration.ontologyNS
