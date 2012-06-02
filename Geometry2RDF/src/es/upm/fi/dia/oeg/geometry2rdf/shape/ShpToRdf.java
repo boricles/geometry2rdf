@@ -70,7 +70,8 @@ import org.opengis.referencing.operation.TransformException;
  */
 public class ShpToRdf {
 
-    private static final Logger LOG = Logger.getLogger(ShpToRdf.class.getName());
+    private static final Logger LOG =
+            Logger.getLogger(ShpToRdf.class.getName());
     private static final String STRING_TO_REPLACE = "+";
     private static final String REPLACEMENT = "%20";
     private static final String SEPARATOR = "_";
@@ -81,7 +82,8 @@ public class ShpToRdf {
     public ShpToRdf(Configuration configuration) throws IOException {
         this.configuration = configuration;
         model = getModelFromConfiguration(configuration);
-        featureCollection = getShapeFileFeatureCollection(configuration.inputFile,
+        featureCollection =
+                getShapeFileFeatureCollection(configuration.inputFile,
                 configuration.featureString);
     }
 
@@ -103,11 +105,13 @@ public class ShpToRdf {
         try {
             map.put("url", file.toURL());
         } catch (MalformedURLException ex) {
-            Logger.getLogger(ShpToRdf.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(
+                    ShpToRdf.class.getName()).log(Level.SEVERE, null, ex);
         }
         if (map.size() > 0) {
             DataStore dataStore = DataStoreFinder.getDataStore(map);
-            FeatureSource featureSource = dataStore.getFeatureSource(featureString);
+            FeatureSource featureSource =
+                    dataStore.getFeatureSource(featureString);
             return featureSource.getFeatures();
         }
         return null;
@@ -134,7 +138,8 @@ public class ShpToRdf {
         return tmpModel;
     }
 
-    private boolean validateCondition(String name, String condition, SimpleFeatureImpl feature) {
+    private boolean validateCondition(
+            String name, String condition, SimpleFeatureImpl feature) {
         String attributeValue[];
         String values[];
         if (condition == null || condition.isEmpty()) {
@@ -181,7 +186,8 @@ public class ShpToRdf {
         return val;
     }
 
-    protected void insertPropertyResource(String resource, String property, SimpleFeatureImpl feature) {
+    protected void insertPropertyResource(
+            String resource, String property, SimpleFeatureImpl feature) {
         if (property == null || property.isEmpty()) {
             return;
         }
@@ -202,7 +208,8 @@ public class ShpToRdf {
         }
     }
 
-    public void writeRdfModel() throws UnsupportedEncodingException, FileNotFoundException {
+    public void writeRdfModel()
+            throws UnsupportedEncodingException, FileNotFoundException {
         FeatureIterator iterator = featureCollection.features();
         try {
             int position = 0;
@@ -213,7 +220,9 @@ public class ShpToRdf {
                 String featureAttribute = "featureWithoutName";
 
                 if (feature.getAttribute(configuration.attribute) != null) {
-                    featureAttribute = feature.getAttribute(configuration.attribute).toString();
+                    featureAttribute =
+                            feature.getAttribute(
+                            configuration.attribute).toString();
                 }
 
                 LOG.log(Level.INFO,
@@ -221,21 +230,31 @@ public class ShpToRdf {
                         featureAttribute);
 
                 if (feature.getAttribute(configuration.langAttribute) != null) {
-                    configuration.defaultLang = feature.getAttribute(configuration.langAttribute).toString();
+                    configuration.defaultLang =
+                            feature.getAttribute(
+                            configuration.langAttribute).toString();
                 }
                 LOG.log(Level.INFO, "defaultLang: {0}", configuration.defaultLang);
 
 
-                if (!featureAttribute.equals(configuration.ignore) && validateCondition(featureAttribute, configuration.condition, feature)) {
+                if (!featureAttribute.equals(configuration.ignore)
+                        && validateCondition(
+                        featureAttribute, configuration.condition, feature)) {
 
-                    String resource = computeOperation(featureAttribute, configuration.operation);
+                    String resource = computeOperation(
+                            featureAttribute, configuration.operation);
 
-                    if (configuration.targetRS != null && configuration.sourceRS != null) {
+                    if (configuration.targetRS != null
+                            && configuration.sourceRS != null) {
                         //It means we have to transform
-                        CoordinateReferenceSystem sourceCRS = CRS.decode(configuration.sourceRS);
-                        CoordinateReferenceSystem targetCRS = CRS.decode(configuration.targetRS);
-                        MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
-                        Geometry targetGeometry = JTS.transform(geometry, transform);
+                        CoordinateReferenceSystem sourceCRS =
+                                CRS.decode(configuration.sourceRS);
+                        CoordinateReferenceSystem targetCRS =
+                                CRS.decode(configuration.targetRS);
+                        MathTransform transform =
+                                CRS.findMathTransform(sourceCRS, targetCRS);
+                        Geometry targetGeometry =
+                                JTS.transform(geometry, transform);
                         geometry = targetGeometry;
                     }
 
@@ -261,40 +280,57 @@ public class ShpToRdf {
                     insertLabelResource(configuration.nsUri + aux,
                             resource, configuration.defaultLang);
 
-                    insertPropertyResource(configuration.nsUri + aux, configuration.property, feature);
+                    insertPropertyResource(
+                            configuration.nsUri + aux,
+                            configuration.property, feature);
 
                     LOG.log(Level.INFO,
                             "writeRdfModel: GeometryType--> {0}",
                             geometry.getGeometryType());
                     if (geometry.getGeometryType().equals(Constants.POINT)) {
                         insertPoint((Point) geometry, aux);
-                    } else if (geometry.getGeometryType().equals(Constants.LINE_STRING)) {
+                    } else if (geometry.getGeometryType().equals(
+                            Constants.LINE_STRING)) {
                         insertLineString(aux, hash, geometry);
-                    } else if (geometry.getGeometryType().equals(Constants.POLYGON)) {
+                    } else if (geometry.getGeometryType().equals(
+                            Constants.POLYGON)) {
                         insertPolygon(aux, hash, geometry);
-                    } else if (geometry.getGeometryType().equals(Constants.MULTI_POLYGON)) {
+                    } else if (geometry.getGeometryType().equals(
+                            Constants.MULTI_POLYGON)) {
                         MultiPolygon multiPolygon = (MultiPolygon) geometry;
-                        for (int i = 0; i < multiPolygon.getNumGeometries(); ++i) {
+                        for (int i = 0; i < multiPolygon.getNumGeometries();
+                                ++i) {
                             Geometry tmpGeometry = multiPolygon.getGeometryN(i);
-                            String newHash = HashGeometry.getHash(tmpGeometry.toText());
-                            if (tmpGeometry.getGeometryType().equals(Constants.POLYGON)) {
+                            String newHash =
+                                    HashGeometry.getHash(tmpGeometry.toText());
+                            if (tmpGeometry.getGeometryType().equals(
+                                    Constants.POLYGON)) {
                                 insertPolygon(aux, newHash, tmpGeometry);
-                            } else if (tmpGeometry.getGeometryType().equals(Constants.LINE_STRING)) {
+                            } else if (tmpGeometry.getGeometryType().equals(
+                                    Constants.LINE_STRING)) {
                                 insertLineString(aux, newHash, tmpGeometry);
                             }
                         }
-                    } else if (geometry.getGeometryType().equals(Constants.MULTI_LINE_STRING)) {
-                        MultiLineString multiLineString = (MultiLineString) geometry;
-                        for (int i = 0; i < multiLineString.getNumGeometries(); ++i) {
-                            Geometry tmpGeometry = multiLineString.getGeometryN(i);
-                            String newHash = HashGeometry.getHash(tmpGeometry.toText());
-                            if (tmpGeometry.getGeometryType().equals(Constants.POLYGON)) {
+                    } else if (geometry.getGeometryType().equals(
+                            Constants.MULTI_LINE_STRING)) {
+                        MultiLineString multiLineString =
+                                (MultiLineString) geometry;
+                        for (int i = 0; i < multiLineString.getNumGeometries();
+                                ++i) {
+                            Geometry tmpGeometry =
+                                    multiLineString.getGeometryN(i);
+                            String newHash = HashGeometry.getHash(
+                                    tmpGeometry.toText());
+                            if (tmpGeometry.getGeometryType().equals(
+                                    Constants.POLYGON)) {
                                 insertPolygon(aux, newHash, tmpGeometry);
-                            } else if (tmpGeometry.getGeometryType().equals(Constants.LINE_STRING)) {
+                            } else if (tmpGeometry.getGeometryType().equals(
+                                    Constants.LINE_STRING)) {
                                 insertLineString(aux, newHash, tmpGeometry);
                             }
                         }
-                    } else if (geometry.getGeometryType().equals(Constants.MULTI_POINT)) {
+                    } else if (geometry.getGeometryType().equals(
+                            Constants.MULTI_POINT)) {
                         insertMultiPoint(aux, hash, geometry);
                     }
 
@@ -331,23 +367,29 @@ public class ShpToRdf {
         for (int i = 0; i < points.getNumPoints(); i++) {
             Point p = (Point) points.getGeometryN(i);
             insertResourceTriplet(
-                    configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+                    configuration.nsUri + hash, configuration.ontologyNS
+                    + configuration.formedBy,
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + SEPARATOR + p.getX());
             insertResourceTypeResource(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + SEPARATOR + p.getX(),
                     URLConstants.NS_GEO + Constants.POINT);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + "_" + p.getX(),
                     URLConstants.NS_GEO + Constants.LATITUDE,
                     String.valueOf(p.getY()), XSDDatatype.XSDdouble);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + "_" + p.getX(),
                     URLConstants.NS_GEO + Constants.LONGITUDE,
                     String.valueOf(p.getX()), XSDDatatype.XSDdouble);
         }
     }
 
-    protected void insertMultiPoint(String resource, String hash, Geometry geo) {
+    protected void insertMultiPoint(
+            String resource, String hash, Geometry geo) {
         insertResourceTypeResource(configuration.nsUri + hash,
                 configuration.ontologyNS + "MultiPunto");
         insertResourceTriplet(configuration.nsUri + resource,
@@ -397,7 +439,8 @@ public class ShpToRdf {
         model.add(resource1, RDF.type, resource2);
     }
 
-    private void insertLiteralTriplet(String s, String p, String o, XSDDatatype x) {
+    private void insertLiteralTriplet(
+            String s, String p, String o, XSDDatatype x) {
         Resource resourceGeometry = model.createResource(s);
         Property property = model.createProperty(p);
         if (x != null) {
@@ -415,7 +458,8 @@ public class ShpToRdf {
         resourceGeometry.addProperty(property, resourceGeometry2);
     }
 
-    private void insertLabelResource(String resource, String label, String lang) {
+    private void insertLabelResource(
+            String resource, String label, String lang) {
         Resource resource1 = model.createResource(resource);
         model.add(resource1, RDFS.label, model.createLiteral(label, lang));
     }
@@ -424,22 +468,29 @@ public class ShpToRdf {
         int i = 0;
         for (Coordinate c : po.getCoordinates()) {
             insertResourceTriplet(
-                    configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
-                    configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x);
+                    configuration.nsUri
+                    + hash, configuration.ontologyNS + configuration.formedBy,
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + c.y + SEPARATOR + c.x);
             insertResourceTypeResource(
-                    configuration.nsUri + UtilsConstants.WGS84 + c.y + SEPARATOR + c.x,
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + c.y + SEPARATOR + c.x,
                     URLConstants.NS_GEO + Constants.POINT);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + c.y + "_" + c.x,
                     URLConstants.NS_GEO + Constants.LATITUDE,
                     String.valueOf(c.y), XSDDatatype.XSDdouble);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + c.y + "_" + c.x,
                     URLConstants.NS_GEO + Constants.LONGITUDE,
                     String.valueOf(c.x), XSDDatatype.XSDdouble);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + c.y + "_" + c.x,
-                    configuration.ontologyNS + "orden", String.valueOf(i), XSDDatatype.XSDint);
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + c.y + "_" + c.x,
+                    configuration.ontologyNS + "orden",
+                    String.valueOf(i), XSDDatatype.XSDint);
             i++;
         }
     }
@@ -448,38 +499,50 @@ public class ShpToRdf {
         for (int i = 0; i < ls.getNumPoints(); i++) { //puntos de la geometria X,Y
             Point p = ls.getPointN(i);
             insertResourceTriplet(
-                    configuration.nsUri + hash, configuration.ontologyNS + configuration.formedBy,
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+                    configuration.nsUri + hash, configuration.ontologyNS
+                    + configuration.formedBy,
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + SEPARATOR + p.getX());
             insertResourceTypeResource(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + SEPARATOR + p.getX(),
                     URLConstants.NS_GEO + Constants.POINT);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + "_" + p.getX(),
                     URLConstants.NS_GEO + Constants.LATITUDE,
                     String.valueOf(p.getY()), XSDDatatype.XSDdouble);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + "_" + p.getX(),
                     URLConstants.NS_GEO + Constants.LONGITUDE,
                     String.valueOf(p.getX()), XSDDatatype.XSDdouble);
             insertLiteralTriplet(
-                    configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
-                    configuration.ontologyNS + "order", String.valueOf(i), XSDDatatype.XSDint);
+                    configuration.nsUri + UtilsConstants.WGS84
+                    + p.getY() + "_" + p.getX(),
+                    configuration.ontologyNS + "order",
+                    String.valueOf(i), XSDDatatype.XSDint);
         }
     }
 
     private void insertPoint(Point p, String resource) {
         insertResourceTriplet(
-                configuration.nsUri + resource, URLConstants.NS_GEO + "geometry",
-                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX());
+                configuration.nsUri + resource, URLConstants.NS_GEO
+                + "geometry",
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY()
+                + SEPARATOR + p.getX());
         insertResourceTypeResource(
-                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY()
+                + SEPARATOR + p.getX(),
                 URLConstants.NS_GEO + Constants.POINT);
         insertLiteralTriplet(
-                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + SEPARATOR + p.getX(),
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY()
+                + SEPARATOR + p.getX(),
                 URLConstants.NS_GEO + Constants.LATITUDE,
                 String.valueOf(p.getY()), XSDDatatype.XSDdouble);
         insertLiteralTriplet(
-                configuration.nsUri + UtilsConstants.WGS84 + p.getY() + "_" + p.getX(),
+                configuration.nsUri + UtilsConstants.WGS84 + p.getY()
+                + "_" + p.getX(),
                 URLConstants.NS_GEO + Constants.LONGITUDE,
                 String.valueOf(p.getX()), XSDDatatype.XSDdouble);
     }
