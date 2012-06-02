@@ -141,7 +141,7 @@ public class ShpToRdf {
   	if (condition == null || condition.isEmpty())
   		return true;
   	attributeValue = condition.split("\\|");
-  	if (attributeValue.length==2) {
+  	if (attributeValue.length == 2) {
   		String attribute = attributeValue[0];
   		values = attributeValue[1].split(",");
   		
@@ -378,7 +378,7 @@ public class ShpToRdf {
     insertResourceTypeResource(
             configuration.nsUri + hash,
             configuration.ontologyNS
-            + URLEncoder.encode("Pol’gono", UtilsConstants.UTF_8).replace(
+            + URLEncoder.encode("Polï¿½gono", UtilsConstants.UTF_8).replace(
                  STRING_TO_REPLACE, REPLACEMENT));
     insertResourceTriplet(configuration.nsUri + resource,
                           URLConstants.NS_GEO + "geometry",

@@ -10,7 +10,7 @@ import java.io.IOException;
 
 /**
  *
- * @author jonathangsc
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  */
 public class ShpToRdfMain {
 

@@ -2,7 +2,7 @@ package es.upm.fi.dia.oeg.geometry2rdf.shape;
 
 /**
  * Constants to be used in the shape library.
- * @author jonathangsc
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  */
 public class URLConstants {
 

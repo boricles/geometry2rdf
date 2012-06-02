@@ -22,7 +22,7 @@ package es.upm.fi.dia.oeg.geometry2rdf.utils;
 /**
  * Constants for the utils library.
  *
- * @author jonathangsc
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  * @version 2nd February 2012.
  */
 public class UtilsConstants {

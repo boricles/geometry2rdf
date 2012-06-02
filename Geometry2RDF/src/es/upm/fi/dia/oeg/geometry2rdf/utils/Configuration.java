@@ -28,7 +28,7 @@ import java.util.logging.Logger;
 /**
  * Class to parse configuration files used in the library.
  *
- * @author jonathangsc
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  */
 public final class Configuration {
 

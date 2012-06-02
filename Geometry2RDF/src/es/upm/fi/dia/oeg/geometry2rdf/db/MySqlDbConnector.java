@@ -4,19 +4,14 @@
  */
 package es.upm.fi.dia.oeg.geometry2rdf.db;
 
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
  * MySQL implementation of DbConnector class.
  *
- * @author jonathangsc
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  */
 public class MySqlDbConnector implements DbConnector {
 

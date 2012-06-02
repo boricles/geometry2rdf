@@ -19,7 +19,6 @@
  */
 package es.upm.fi.dia.oeg.geometry2rdf.db;
 
-import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,7 +28,7 @@ import java.util.Set;
  * Interface that defines all the methods to be implemented by any kind
  * of Database connector.
  *
- * @author jonbaraq
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  * @version 2nd Feb 2012.
  */
 public interface DbConnector {

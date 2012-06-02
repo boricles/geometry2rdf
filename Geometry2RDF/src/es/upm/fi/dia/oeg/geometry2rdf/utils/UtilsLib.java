@@ -29,7 +29,7 @@ import java.io.UnsupportedEncodingException;
 /**
  * Utils Library for geometry2rdf
  *
- * @author jonathangsc
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  * @version 2nd Feb 2012.
  */
 public class UtilsLib {

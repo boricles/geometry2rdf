@@ -23,14 +23,12 @@ package es.upm.fi.dia.oeg.geometry2rdf.db;
  * Contants for database library.
  *
  * @author boricles
- * @author jonbaraq
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  *
  * @version 2nd Feb 2012.
  */
 public class DbConstants {
-
-
-
+    
   // DB Types.
   public static final int MSACCESS = 0;
   public static final int MYSQL = 1;
@@ -51,4 +49,5 @@ public class DbConstants {
   public static final String[] TABLE_TYPES = {"TABLE"};
 
   public static final String TABLE_NAME = "TABLE_NAME";
+  
 }
