@@ -1,7 +1,7 @@
 /*
  * @(#) Constants.java	0.1	2012/02/14
  *
- * Copyright (C) 2012 jonbaraq
+ * Copyright (C) 2012 Jonathan Gonzalez (jonathan@jonbaraq.eu)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -75,7 +75,7 @@ public final class Configuration {
     } catch (IOException io) {
       LOG.log(Level.WARNING, "Problems loading configuration file: {0}", io);
     }
-    initializeParameters(properties);
+    initializeParameters(properties, path.substring(0, path.lastIndexOf("/") + 1));
   }
 
   /**
@@ -83,10 +83,10 @@ public final class Configuration {
    *
    * @param properties with the properties object.
    */
-  private void initializeParameters(Properties properties) {
-    inputFile = properties.getProperty("inputFile");
-    tmpDir = properties.getProperty("tempDir");
-    outputFile = properties.getProperty("outputFile");
+  private void initializeParameters(Properties properties, String path) {
+    inputFile = path + properties.getProperty("inputFile");
+    tmpDir = path + properties.getProperty("tempDir");
+    outputFile = path + properties.getProperty("outputFile");
     resourceName = properties.getProperty("resourceName");
 
     if (!UtilsLib.isNullOrEmpty(properties.getProperty("nsPrefix"))) {

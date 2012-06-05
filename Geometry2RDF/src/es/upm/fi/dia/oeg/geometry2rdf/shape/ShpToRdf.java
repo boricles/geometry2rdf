@@ -66,7 +66,7 @@ import org.opengis.referencing.operation.TransformException;
 /**
  * Class to convert shapefiles to RDF.
  *
- * @author jonbaraq
+ * @author Jonathan Gonzalez (jonathan@jonbaraq.eu)
  */
 public class ShpToRdf {
 

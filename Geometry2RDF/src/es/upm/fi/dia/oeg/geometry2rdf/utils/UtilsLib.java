@@ -1,7 +1,7 @@
 /*
  * @(#) UtilsLib.java	0.1	2012/02/03
  *
- * Copyright (C) 2012 jonbaraq
+ * Copyright (C) 2012 Jonathan Gonzalez (jonathan@jonbaraq.eu)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
