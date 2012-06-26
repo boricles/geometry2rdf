@@ -79,6 +79,14 @@ public class ShpToRdf {
     private Configuration configuration;
     private FeatureCollection featureCollection;
 
+    public ShpToRdf(String propertiesFilePath) throws IOException {
+        this.configuration = new Configuration(propertiesFilePath);
+        model = getModelFromConfiguration(configuration);
+        featureCollection =
+                getShapeFileFeatureCollection(configuration.inputFile,
+                configuration.featureString);      
+    }
+    
     public ShpToRdf(Configuration configuration) throws IOException {
         this.configuration = configuration;
         model = getModelFromConfiguration(configuration);
